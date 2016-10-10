@@ -2,18 +2,52 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+	testing = false;
+	
+	bUseRegistration = true;
+	bUseMirroring = false;
+	
+	nearClip = 500;
+	farClip = 6000;
+	
+	w = 640;
+	h = 480;
+	
 	chessboardSize = 300;
 	chessboardX = 5;
-    chessboardY = 4;
-
-    kinect.setRegistration(true);
+	chessboardY = 4;
+	
+#ifdef USE_ASTRA
+    astra.setup();
+    
+    astra.enableRegistration(bUseRegistration);
+    astra.enableMirroring(bUseMirroring);
+    
+    astra.setDepthClipping(nearClip, farClip);
+    
+    astra.initVideoGrabber();
+    
+    astra.initDepthStream();
+    astra.initPointStream();
+    //astra.initHandStream();
+    
+    w = astra.getDepthImage().getWidth();
+    h = astra.getDepthImage().getHeight();
+#else
+    kinect.setRegistration(bUseRegistration);
     kinect.init();
     kinect.open();
+    kinect.setDepthClipping(nearClip, farClip);
     
-    //rgbImage = new ofxCvColorImage();
-    rgbImage.allocate(kinect.width, kinect.height);
-    
-    fboChessboard.allocate(PROJECTOR_RESOLUTION_X, PROJECTOR_RESOLUTION_Y, GL_RGBA);
+    if (kinect.isConnected()) {
+        w = kinect.width;
+        h = kinect.height;
+    }
+#endif
+	
+	//rgbImage = new ofxCvColorImage();
+	rgbImage.allocate(w, h);
+	fboChessboard.allocate(PROJECTOR_RESOLUTION_X, PROJECTOR_RESOLUTION_Y, GL_RGBA);
 }
 
 //--------------------------------------------------------------
@@ -60,12 +94,20 @@ void ofApp::drawTestingPoint(ofVec2f projectedPoint) {
 void ofApp::addPointPair() {
     int nDepthPoints = 0;
     for (int i=0; i<cvPoints.size(); i++) {
+#ifdef USE_ASTRA
+        ofVec3f worldPoint = astra.getWorldCoordinateAt(cvPoints[i].x, cvPoints[i].y);
+#else
         ofVec3f worldPoint = kinect.getWorldCoordinateAt(cvPoints[i].x, cvPoints[i].y);
+#endif
         if (worldPoint.z > 0)   nDepthPoints++;
     }
     if (nDepthPoints == (chessboardX-1)*(chessboardY-1)) {
         for (int i=0; i<cvPoints.size(); i++) {
+#ifdef USE_ASTRA
+            ofVec3f worldPoint = astra.getWorldCoordinateAt(cvPoints[i].x, cvPoints[i].y);
+#else
             ofVec3f worldPoint = kinect.getWorldCoordinateAt(cvPoints[i].x, cvPoints[i].y);
+#endif
             pairsKinect.push_back(worldPoint);
             pairsProjector.push_back(currentProjectorPoints[i]);
         }
@@ -79,12 +121,26 @@ void ofApp::addPointPair() {
 
 //--------------------------------------------------------------
 void ofApp::update(){
+#ifdef USE_ASTRA
+    astra.update();
+    if (astra.isFrameNew())
+#else
     kinect.update();
-    if (kinect.isFrameNew()) {
-        rgbImage.setFromPixels(kinect.getPixels(), kinect.width, kinect.height);
+    if (kinect.isFrameNew())
+#endif
+    {
+#ifdef USE_ASTRA
+        rgbImage.setFromPixels(astra.getColorImage().getPixels().getData(), w, h);
+#else
+        rgbImage.setFromPixels(kinect.getPixels().getData(), w, h);
+#endif
         if (testing) {
             ofVec2f t = ofVec2f(min(kinect.getWidth()-1,testPoint.x), min(kinect.getHeight()-1,testPoint.y));
+#ifdef USE_ASTRA
+            ofVec3f worldPoint = astra.getWorldCoordinateAt(t.x, t.y);
+#else
             ofVec3f worldPoint = kinect.getWorldCoordinateAt(t.x, t.y);
+#endif
             ofVec2f projectedPoint = kpt.getProjectedPoint(worldPoint);
             drawTestingPoint(projectedPoint);
         }
@@ -108,7 +164,11 @@ void ofApp::update(){
 //--------------------------------------------------------------
 void ofApp::draw(){
     rgbImage.draw(0, 0);
+#ifdef USE_ASTRA
+    astra.drawDepth(10, 490, 320, 240);
+#else
     kinect.drawDepth(10, 490, 320, 240);
+#endif
     
     ofSetColor(0);
     if (testing) {
@@ -157,6 +217,12 @@ void ofApp::keyPressed(int key){
         kpt.loadCalibration("calibration.xml");
         testing = true;
     }
+#ifdef USE_ASTRA
+    else if (key == 'm') {
+        bUseMirroring ^= 1;
+        astra.enableMirroring(bUseMirroring);
+    }
+#endif
 }
 
 //--------------------------------------------------------------
