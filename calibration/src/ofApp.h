@@ -2,9 +2,18 @@
 
 #include "ofMain.h"
 #include "ofxKinectProjectorToolkit.h"
-#include "ofxKinect.h"
+
 #include "ofxOpenCv.h"
 #include "ofxCv.h"
+
+
+#define USE_ASTRA
+
+#ifdef USE_ASTRA
+#include "ofxOrbbecAstra.h"
+#else
+#include "ofxKinect.h"
+#endif
 
 
 // this must match the display resolution of your projector
@@ -27,9 +36,22 @@ public:
     void drawTestingPoint(ofVec2f projectedPoint);
     void addPointPair();
     
-    ofxKinect                   kinect;
     ofxKinectProjectorToolkit   kpt;
-
+    
+#ifdef USE_ASTRA
+    ofxOrbbecAstra              astra;
+#else
+    ofxKinect                   kinect;
+#endif
+    
+    int                         w, h;
+    
+    bool                        bUseRegistration;
+    bool                        bUseMirroring;
+    
+    float                       nearClip;
+    float                       farClip;
+    
     ofFbo                       fboChessboard;
     ofxCvColorImage             rgbImage;
     cv::Mat                     cvRgbImage;
@@ -49,5 +71,3 @@ public:
     bool                        testing;
     bool                        saved;
 };
-
-
