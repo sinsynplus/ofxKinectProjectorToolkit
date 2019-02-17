@@ -5,19 +5,23 @@
 #include "matrix_qr.h"
 
 
-class ofxKinectProjectorToolkit
-{
+class ofxKinectProjectorToolkit {
+
 public:
+    
     ofxKinectProjectorToolkit();
     
-    void calibrate(vector<ofVec3f> pairsKinect,
-                   vector<ofVec2f> pairsProjector);
+    void calibrate(vector<ofVec3f> pairsKinect, vector<ofVec2f> pairsProjector);
+    //void calibrate(vector<glm::vec3> pairsKinect, vector<glm::vec2> pairsProjector);
     
     ofVec2f getProjectedPoint(ofVec3f worldPoint);
-    vector<ofVec2f> getProjectedContour(vector<ofVec3f> *worldPoints);
+    //glm::vec2 getProjectedPoint(glm::vec3 worldPoint);
+    
+    //vector<ofVec2f> getProjectedContour(vector<ofVec3f> *worldPoints);
+    //vector<glm::vec2> getProjectedContour(vector<glm::vec3> *worldPoints);
     
     vector<double> getCalibration();
-
+    
     void loadCalibration(string path);
     void saveCalibration(string path);
     
@@ -30,4 +34,5 @@ private:
     dlib::matrix<double, 11, 1> x;
     
     bool calibrated;
+    
 };
